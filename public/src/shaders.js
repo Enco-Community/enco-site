@@ -1,28 +1,28 @@
 import { BLOCKS, PLUGIN_KIND, PLUGIN_OWN, TEXT_WIDTH } from './text.js';
 
 // Two passes: one glyph per cell for whichever chapters are showing, then the glyphs at device
-// resolution. The first costs the same whatever the screen's pixel density.
+// resolution. Each chapter is its own small program, so a device compiles only the chapters it
+// reaches, one at a time, instead of one large shader holding all of them.
 
 export const VERTEX = `#version 300 es
 layout(location = 0) in vec2 position;
 void main() { gl_Position = vec4(position, 0.0, 1.0); }
 `;
 
-// One chapter is one function of a cell and the clock. Rows count from the top. Output: r glyph
-// index (code - 32), g ink strength, b accent.
-export const CELLS = `#version 300 es
+// What every chapter program shares. Rows count from the top. Output: r glyph index (code - 32),
+// g ink strength, b accent.
+const COMMON = `#version 300 es
 precision highp float;
 precision highp int;
 
 uniform sampler2D uText;
-uniform sampler2D uMark;    // the name's coverage, two texels per cell each way, rows from the top
+uniform sampler2D uMark;    // the name per cell, rows from the top: coverage, depth, coverage gradient
 uniform ivec2 uGrid;        // columns, rows
 uniform vec2 uCell;         // cell size in CSS px
 uniform float uTime;
 uniform float uBorn;        // seconds since the page opened, for the name condensing
-uniform int uFrom;
-uniform int uTo;
-uniform float uMix;         // 0 shows uFrom, 1 shows uTo; between, uTo rains in from the top
+uniform int uPart;          // 0 the whole screen; during a transition 1 below the front, 2 above it
+uniform float uMix;         // how far the incoming chapter has rained in
 uniform vec4 uPocket;       // the copy, in cells: left, top, right, bottom
 uniform ivec4 uLedger;      // the log's first column, bottom row, and number of columns
 uniform int uGate;          // the mapper's column
@@ -94,38 +94,25 @@ float rain(int col, int row, float density, float speed, out bool head) {
   return best;
 }
 
-float markAt(int col, int row) {
-  ivec2 size = textureSize(uMark, 0);
-  ivec2 base = ivec2(col, row) * 2;
-  float sum = 0.0;
-  for (int i = 0; i < 4; i++) sum += texelFetch(uMark, clamp(base + ivec2(i & 1, i >> 1), ivec2(0), size - 1), 0).a;
-  return sum * 0.25;
-}
+`;
 
-// Enco: a screen of rain, and the name condensed out of it. Every so often an echo sweeps across
+// Each chapter defines `Glyph chapter(int col, int row)`, in page order.
+const BODIES = [
+`// Enco: a screen of rain, and the name condensed out of it. Every so often an echo sweeps across
 // and rebuilds the letters from other characters: the same name, never the same twice.
-Glyph opening(int col, int row) {
+Glyph chapter(int col, int row) {
   bool head;
   float r = rain(col, row, 0.9, 16.0, head);
   Glyph drop = NONE;
   if (r > 0.0) drop = Glyph(flicker(col, row, 7.0), head ? 0.75 : 0.06 + 0.32 * r * r, 0.0);
 
-  float here = markAt(col, row);
-  if (here < 0.35) return drop;
+  vec4 mark = texelFetch(uMark, ivec2(col, row), 0);
+  if (mark.r < 0.35) return drop;
   // Each column fills from the top as its first drop passes through the letters.
   float since = uBorn - (hash(vec2(float(col), 5.5)) * 1.1 + float(row) / float(uGrid.y));
   if (since < 0.0) return drop;
   if (since < 0.08) return Glyph(flicker(col, row, 20.0), 1.0, 0.0);
-
-  // How deep inside a stroke this cell is, from the coverage a few cells around it.
-  int sx = int(floor(2.0 * uCell.y / uCell.x + 0.5));
-  float depth = 0.0;
-  for (int i = 0; i < 8; i++) {
-    float a = float(i) * PI * 0.25;
-    ivec2 o = ivec2(int(floor(cos(a) * float(sx) + 0.5)), int(floor(sin(a) * 2.0 + 0.5)));
-    depth += markAt(col + o.x, row + o.y) + markAt(col + o.x * 2, row + o.y * 2);
-  }
-  depth /= 16.0;
+  float depth = mark.g;
 
   float period = 11.0;
   float front = (mod(uTime, period) - 1.0) / 4.0;
@@ -135,9 +122,7 @@ Glyph opening(int col, int row) {
   float accent = max(0.0, 1.0 - abs(x - front) * float(uGrid.x) / 3.0);
 
   // Outline where the stroke ends, once per edge.
-  float gx = markAt(col + 1, row) - markAt(col - 1, row);
-  float gy = markAt(col, row - 1) - markAt(col, row + 1);
-  vec2 g = vec2(gx * uCell.y / uCell.x, gy);
+  vec2 g = (mark.ba * 2.0 - 1.0) * vec2(uCell.y / uCell.x, 1.0);
   if (length(g) > 0.45) {
     float line = atan(g.y, g.x) + PI * 0.5;
     return Glyph(EDGES[int(mod(floor((line + PI * 0.125) / (PI * 0.25)), 4.0))], 0.95, accent);
@@ -157,9 +142,10 @@ Glyph opening(int col, int row) {
   return ramp(level, 0.6 + 0.4 * level, accent);
 }
 
-// Plugins: a drifting wall of boxes, each running calls; now and then one crashes and comes back
+`,
+`// Plugins: a drifting wall of boxes, each running calls; now and then one crashes and comes back
 // fresh, and nothing around it notices. Shipped plugins have solid frames, the owner's own dotted.
-Glyph plugins(int col, int row) {
+Glyph chapter(int col, int row) {
   const int W = 26;
   const int H = 8;
   int by = row / H;
@@ -215,9 +201,10 @@ Glyph plugins(int col, int row) {
   return NONE;
 }
 
-// Generations: every plugin keeps a line of versions, read like a commit graph scrolling up. A new
+`,
+`// Generations: every plugin keeps a line of versions, read like a commit graph scrolling up. A new
 // version branches off on trial and is either kept or dropped, and then the line goes on from there.
-Glyph generations(int col, int row) {
+Glyph chapter(int col, int row) {
   const int SW = 28;
   const int L = 12;
   // Whole strands only, centred across the screen.
@@ -264,9 +251,10 @@ Glyph generations(int col, int row) {
   return NONE;
 }
 
-// The log, in three columns: each entry rains down letter by letter, lands on the bottom line,
+`,
+`// The log, in three columns: each entry rains down letter by letter, lands on the bottom line,
 // and the stack moves up. Old entries fade but stay.
-Glyph journal(int col, int row) {
+Glyph chapter(int col, int row) {
   const float P = 0.7;      // seconds per entry
   const float SPEED = 52.0; // rows per second
   int x = col - uLedger.x;
@@ -299,8 +287,9 @@ Glyph journal(int col, int row) {
   return g;
 }
 
-// Mappers: raw arrivals stream in from the left, cross one column, and leave as plain records.
-Glyph mappers(int col, int row) {
+`,
+`// Mappers: raw arrivals stream in from the left, cross one column, and leave as plain records.
+Glyph chapter(int col, int row) {
   vec2 rid = vec2(float(row), 11.0);
   int i = col - int(floor(uTime * mix(5.0, 14.0, hash(rid)) + hash(rid + 1.0) * 500.0));
   if (hash(vec2(float(row), floor(float(i) / 64.0))) > 0.6) {
@@ -319,7 +308,8 @@ Glyph mappers(int col, int row) {
   return Glyph(code, 0.9, 0.0);
 }
 
-// One planet: a sphere of characters lit from the upper left. While the ghost is with it, it
+`,
+`// One planet: a sphere of characters lit from the upper left. While the ghost is with it, it
 // turns and its surface is written with the conversation's log; otherwise it sleeps, dim.
 Glyph planet(int i, vec2 p, bool home) {
   vec3 body = uPlanets[i];
@@ -340,7 +330,7 @@ Glyph planet(int i, vec2 p, bool home) {
 }
 
 // Many shells: the same conversation moves between devices, and is only ever with one of them.
-Glyph shells(int col, int row) {
+Glyph chapter(int col, int row) {
   vec2 p = (vec2(float(col), float(row)) + 0.5) * uCell;
   bool behind = uGhost.w > 0.5;
   vec3 home = uPlanets[uHome < 0 ? 0 : uHome];
@@ -374,9 +364,10 @@ Glyph shells(int col, int row) {
   return NONE;
 }
 
-// Echo: rings leave two points and cross. Each ring bends a little differently from the one
+`,
+`// Echo: rings leave two points and cross. Each ring bends a little differently from the one
 // before it, so no ring repeats another.
-Glyph echoes(int col, int row) {
+Glyph chapter(int col, int row) {
   vec2 p = (vec2(float(col), float(row)) + 0.5) * uCell;
   float level = 0.0;
   float crest = 0.0;
@@ -402,36 +393,25 @@ Glyph echoes(int col, int row) {
   return ramp(min(level, 1.0), 0.25 + 0.6 * min(level, 1.0), 0.0);
 }
 
-Glyph chapter(int id, int col, int row) {
-  if (id == 0) return opening(col, row);
-  if (id == 1) return plugins(col, row);
-  if (id == 2) return generations(col, row);
-  if (id == 3) return journal(col, row);
-  if (id == 4) return mappers(col, row);
-  if (id == 5) return shells(col, row);
-  return echoes(col, row);
-}
+`,
+];
 
-void main() {
+const MAIN = `void main() {
   int col = int(gl_FragCoord.x);
   int row = uGrid.y - 1 - int(gl_FragCoord.y);
-  Glyph g;
-  if (uMix <= 0.0) {
-    g = chapter(uFrom, col, row);
-  } else if (uMix >= 1.0) {
-    g = chapter(uTo, col, row);
-  } else {
-    // The next chapter rains in: each column's front falls at its own moment.
+  // During a transition the incoming chapter rains in from the top, each column's front falling at
+  // its own moment: the outgoing chapter draws below the front, the incoming one above it.
+  float d = 0.0;
+  if (uPart != 0) {
     float delay = hash(vec2(float(col), 3.7)) * 0.4;
     float front = clamp((uMix - delay) / 0.6, 0.0, 1.0) * float(uGrid.y + 24) - 12.0;
-    float d = front - float(row);
-    if (d <= 0.0) {
-      g = chapter(uFrom, col, row);
-    } else {
-      g = chapter(uTo, col, row);
-      if (d < 1.0) g = Glyph(flicker(col, row, 20.0), 1.0, 0.0);
-      else if (d < 10.0 && g.alpha < 0.35) g = Glyph(flicker(col, row, 14.0), 0.45 * (1.0 - d / 10.0), 0.0);
-    }
+    d = front - float(row);
+    if ((uPart == 2) != (d > 0.0)) discard;
+  }
+  Glyph g = chapter(col, row);
+  if (uPart == 2) {
+    if (d < 1.0) g = Glyph(flicker(col, row, 20.0), 1.0, 0.0);
+    else if (d < 10.0 && g.alpha < 0.35) g = Glyph(flicker(col, row, 14.0), 0.45 * (1.0 - d / 10.0), 0.0);
   }
 
   // Keep the copy readable: the art fades out around it.
@@ -442,6 +422,8 @@ void main() {
   outCell = vec4(float(g.code - 32) / 255.0, g.alpha, g.accent, 0.0);
 }
 `;
+
+export const CHAPTERS = BODIES.map((body) => COMMON + body + MAIN);
 
 export const PRESENT = `#version 300 es
 precision highp float;

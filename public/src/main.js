@@ -1,4 +1,6 @@
 import { Field } from './field.js';
+import { Pace } from './pace.js';
+import { CHAPTERS } from './shaders.js';
 import { Story, layout, ghost, wordmark } from './story.js';
 import { textTexture } from './text.js';
 
@@ -9,6 +11,9 @@ export const NARROW = '(max-width: 760px), (max-aspect-ratio: 4/5)';
 const narrow = matchMedia(NARROW);
 const FAMILY = '"IBM Plex Mono", ui-monospace, Menlo, monospace';
 const ROWS = 88; // about this many rows of glyphs on any screen
+// The shortest time between frames, in ms: the usual one, and the one where WebGL runs on the CPU
+// and shares its cores with everything else. `Pace` lengthens it on a device that cannot keep up.
+const INTERVAL = { usual: 1000 / 60, software: 1000 / 24 };
 const META = {
   en: {
     title: 'Enco: a personal assistant that runs locally',
@@ -94,8 +99,8 @@ function animate(field) {
   let colors = palette();
   let target = colors;
   let frame = 0;
-  let last = 0;
   let dirty = true;
+  const pace = new Pace(field.software ? INTERVAL.software : INTERVAL.usual);
 
   const resize = () => {
     field.resize(cellFor(window.innerHeight), FAMILY, wordmark([innerWidth, innerHeight], narrow.matches));
@@ -103,6 +108,8 @@ function animate(field) {
     story.read(window.scrollY);
     dirty = true;
   };
+  // Sized now, before the first frame; the observer follows later changes.
+  resize();
   new ResizeObserver(resize).observe(canvas);
   document.fonts?.load(`400 20px "IBM Plex Mono"`).then(() => {
     field.redraw();
@@ -119,28 +126,32 @@ function animate(field) {
 
   const tick = (now) => {
     frame = requestAnimationFrame(tick);
-    if (last && now - last < 1000 / 62) return; // about 60 frames a second, even on faster screens
-    const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
-    last = now;
+    const elapsed = pace.due(now, field.drawing(), !field.firstDraw);
+    if (elapsed === null) return;
     const still = stillness.matches;
     if (still && !dirty && colors === target) return;
+    const dt = Math.min(elapsed / 1000, 0.1);
 
-    if (still) {
-      clock.time = 18;
-      clock.born = 18;
-    } else {
-      clock.time += dt;
-      clock.born += dt;
-    }
+    if (still) clock.time = 18;
+    else clock.time += dt;
     story.step(dt, still);
     colors = blend(colors, target, still ? 1 : 1 - Math.exp(-dt * 7));
-    field.render(compose(field, story, clock, colors, narrow.matches));
+    const drawn = field.render(compose(field, story, clock, colors, narrow.matches));
+    pace.drew(now);
+    // The name condenses only once it can be drawn, however long its program took to compile.
+    if (still) clock.born = 18;
+    else if (drawn) clock.born += dt;
+    // Once the reader's chapter draws, the ones on either side compile ahead of them.
+    if (drawn) {
+      const near = Math.round(story.position);
+      for (let id = Math.max(0, near - 1); id <= Math.min(CHAPTERS.length - 1, near + 1); id++) field.prepare(id);
+    }
     dirty = false;
   };
 
   const start = () => {
     if (frame) return;
-    last = 0;
+    pace.restart();
     frame = requestAnimationFrame(tick);
   };
   const stop = () => {
@@ -158,16 +169,13 @@ function animate(field) {
 
 // Everything one frame needs, from the story's position and the clock.
 export function compose(field, story, clock, colors, isNarrow) {
-  const { from, to, mix } = story.chapters();
   const pocket = pocketOf(story.current(), field.cellCss);
   const places = layout(field.view, [field.cols, field.rows], pocket, isNarrow);
   return {
+    chapters: story.chapters(),
     cells: {
       uTime: clock.time,
       uBorn: clock.born,
-      uFrom: from,
-      uTo: to,
-      uMix: mix,
       uPocket: pocket,
       uLedger: places.uLedger,
       uGate: places.uGate,

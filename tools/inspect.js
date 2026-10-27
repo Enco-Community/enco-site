@@ -23,7 +23,9 @@ export async function still({ position = 0, time = 6 } = {}) {
   const story = new Story([...document.querySelectorAll('[data-scene]')]);
   story.measure();
   story.position = position;
-  field.render(compose(field, story, { time, born: time }, palette(), narrow));
+  const frame = compose(field, story, { time, born: time }, palette(), narrow);
+  // Chapters compile on demand; wait for the ones this still shows.
+  while (!field.render(frame)) await new Promise((resolve) => setTimeout(resolve, 10));
 }
 
 // The last still as plain text, one line per row of cells, top first.

@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>enco-site bench</title>
+<!-- Development aid: times shader setup and frames for each chapter, then logs one JSON line.
+     Open /tools/bench.html in a browser, or run a headless one against it to mimic weak GPUs. -->
+<style>canvas { position: fixed; inset: 0; width: 1440px; height: 900px; }</style>
+<canvas></canvas>
+<script type="module">
+import { Field } from '../src/field.js';
+import { textTexture } from '../src/text.js';
+import { layout, ghost, wordmark } from '../src/story.js';
+
+const canvas = document.querySelector('canvas');
+const result = {};
+let start = performance.now();
+const field = Field.create(canvas, textTexture());
+result.create = Math.round(performance.now() - start);
+result.software = field.software;
+result.parallel = !!field.parallel;
+const cell = { width: 10 * 0.54, height: 10, font: 8.8 };
+field.resize(cell, 'monospace', wordmark([1440, 900], false));
+const places = layout(field.view, [field.cols, field.rows], [0, 0, 0, 0], false);
+const pixel = new Uint8Array(4);
+const frame = (from, mix, t) => {
+  const drawn = field.render({
+    chapters: { from, to: Math.min(from + 1, 6), mix },
+    cells: {
+      uTime: t, uBorn: t, uPocket: [0, 0, 0, 0], uLedger: places.uLedger, uGate: places.uGate,
+      uPlanets: places.uPlanets, uSources: places.uSources, ...ghost(places.planets, t),
+    },
+    present: { uPaper: [0.95, 0.94, 0.91], uInk: [0.13, 0.12, 0.1], uAccent: [0.18, 0.27, 0.78] },
+  });
+  field.gl.readPixels(0, 0, 1, 1, field.gl.RGBA, field.gl.UNSIGNED_BYTE, pixel);
+  return drawn;
+};
+// How long a chapter takes to compile, waiting the way the page does: without blocking.
+const compile = async (id) => {
+  const begin = performance.now();
+  field.prepare(id);
+  while (!field.ready(id)) await new Promise((resolve) => setTimeout(resolve, 2));
+  return Math.round(performance.now() - begin);
+};
+result.compileOpening = await compile(0);
+start = performance.now();
+frame(0, 0, 3);
+result.first = Math.round(performance.now() - start);
+const compiles = [];
+for (let id = 1; id < 7; id++) compiles.push(await compile(id));
+result.compileOthers = compiles;
+const frames = Number(new URLSearchParams(location.search).get('frames') || 10);
+for (const [name, from, mix] of [['opening', 0, 0], ['rain-in', 0, 0.5], ['plugins', 1, 0], ['journal', 3, 0], ['shells', 5, 0], ['echoes', 6, 0], ['opening again', 0, 0]]) {
+  start = performance.now();
+  for (let i = 0; i < frames; i++) frame(from, mix, 3 + i * 0.016);
+  result[name] = +((performance.now() - start) / frames).toFixed(1);
+}
+// The display pass alone, reusing the last frame's cells, to split a frame's cost between passes.
+const display = () => {
+  const gl = field.gl;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.useProgram(field.present.program);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+};
+start = performance.now();
+for (let i = 0; i < frames; i++) display();
+result['display pass'] = +((performance.now() - start) / frames).toFixed(1);
+result.pixels = canvas.width * canvas.height;
+result.grid = [field.cols, field.rows];
+console.log('BENCH ' + JSON.stringify(result));
+</script>

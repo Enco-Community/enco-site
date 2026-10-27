@@ -27,10 +27,19 @@ npx cf deploy --prebuilt --mode production
 
 `public/src/field.js` draws two passes each frame:
 
-1. One glyph per cell. Each section is one function in `public/src/shaders.js` (`opening`, `plugins`, `generations`, `journal`, `mappers`, `shells`, `echoes`), and the pass runs the one or two that are showing.
+1. One glyph per cell. Each section is its own small program (`CHAPTERS` in `public/src/shaders.js`); during a transition the outgoing section draws below the rain front and the incoming one above it.
 2. The glyphs at device resolution, from an atlas drawn with the page's own monospace font.
 
 The first pass depends on the number of cells, about 90 rows on any screen, not on pixel density.
+
+The page is built to open on any device:
+
+- **Compiling**: programs compile on demand, a section before the reader reaches it. The page never waits for the compiler: it uses a program only once a fence shows the GPU has worked through it, and, where the browser supports `KHR_parallel_shader_compile`, once the browser reports the compile done.
+- **The name**: it is analysed once per size on the CPU, so the opening reads one texel per cell.
+- **Software rendering**: where WebGL runs on the CPU, because the GPU is blocked or absent, the glyphs are drawn at CSS resolution and the page draws at most 24 frames a second.
+- **Pacing** (`public/src/pace.js`): the page never sends a frame while the GPU is still drawing the last one. A frame still drawing when the next one is due holds the next one back until twice its own time has passed, so a device that cannot keep up spends at most half its time on the picture. Devices that keep up stay at 60 frames a second.
+
+`tools/bench.html` times compiling and drawing each section. To see how a computer without a GPU fares, run it in headless Chrome with `--disable-gpu --enable-unsafe-swiftshader`: WebGL then runs on the CPU and the browser composites on the CPU, as it would there.
 
 `public/src/story.js` turns the scroll position into which sections are showing and where each one places its pieces; `public/src/text.js` holds every string the art draws.
 
