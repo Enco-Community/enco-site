@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Enco: a local personal assistant</title>
+  <meta name="description" content="A local personal assistant. Light, free, self-building. Always on.">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    (() => {
+      const root = document.documentElement;
+      let theme = null;
+      let lang = null;
+      try {
+        theme = localStorage.getItem('enco.theme');
+        lang = localStorage.getItem('enco.lang');
+      } catch {}
+      root.dataset.theme = theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      root.lang = lang || (/^zh/i.test(navigator.language) ? 'zh-CN' : 'en');
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="src/main.js"></script>
+</head>
+<body>
+  <canvas class="field" aria-hidden="true"></canvas>
+
+  <header class="bar">
+    <a class="mark" href="#top">enco</a>
+    <nav class="controls" aria-label="Page settings">
+      <div class="switch" role="group" aria-label="Language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="zh-CN">中文</button>
+      </div>
+      <div class="switch" role="group" aria-label="Theme">
+        <button type="button" data-theme-choice="light"><span lang="en">Light</span><span lang="zh-CN">暖白</span></button>
+        <button type="button" data-theme-choice="dark"><span lang="en">Dark</span><span lang="zh-CN">暗黑</span></button>
+      </div>
+      <a class="quiet" href="https://github.com/Darkatse/Enco">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="chapter hero" id="top" data-scene>
+      <div class="copy">
+        <h1>Enco</h1>
+        <p class="lead" lang="en">A local personal assistant. Light, free, self-building. Always on.</p>
+        <p class="lead" lang="zh-CN">本地运行的私人助理。轻盈，自由，自我构建。永远在线。</p>
+        <div class="actions">
+          <a class="button" href="https://github.com/Darkatse/Enco">GitHub</a>
+          <a class="quiet" lang="en" href="https://github.com/Darkatse/Enco#readme">README</a>
+          <a class="quiet" lang="zh-CN" href="https://github.com/Darkatse/Enco/tree/main/docs/design">设计文档</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" data-scene>
+      <div class="copy">
+        <h2 lang="en">Every capability is a plugin</h2>
+        <h2 lang="zh-CN">能力皆是插件</h2>
+        <p lang="en">Every capability lives in a WebAssembly plugin. Enco can rewrite or replace any of them while running.</p>
+        <p lang="zh-CN">一切的能力都来自于 WebAssembly 插件。所有的插件都可以被 Enco 在运行过程中进行实时改写与替换。</p>
+      </div>
+    </section>
+
+    <section class="chapter" data-scene>
+      <div class="copy">
+        <h2 lang="en">Rolls back on failure</h2>
+        <h2 lang="zh-CN">崩溃自动回退</h2>
+        <p lang="en">When a plugin, config, or API endpoint fails, a formal mechanism rolls it back automatically. Enco stays online, and stays with you.</p>
+        <p lang="zh-CN">插件、配置与 API 端点的崩溃/失败会被形式化机制自动回退，保证 Enco 永远在线，永远陪伴。</p>
+      </div>
+    </section>
+
+    <section class="chapter" data-scene>
+      <div class="copy">
+        <h2 lang="en">The record is its continuity</h2>
+        <h2 lang="zh-CN">记录即是持续性</h2>
+        <p lang="en">Every action leaves a record. That record is Enco's continuity: it recovers from crashes and settles on any machine. Designed for cyberspace from day one.</p>
+        <p lang="zh-CN">凡所行动，皆有记录。记录便是 Enco 的连续性所在，崩溃可恢复，随处可安身。从第一天起就为赛博空间所设计。</p>
+      </div>
+    </section>
+
+    <section class="chapter" data-scene>
+      <div class="copy">
+        <h2 lang="en">Outside input, mapped one to one</h2>
+        <h2 lang="zh-CN">外部输入一一映射</h2>
+        <p lang="en">External data is strictly typed into Enco's internal format, keeping every input consistent and reproducible.</p>
+        <p lang="zh-CN">外部数据会严格类型化为 Enco 的内部格式，尽可能确保数据的一致性和可重现性。</p>
+      </div>
+    </section>
+
+    <section class="chapter" data-scene>
+      <div class="copy">
+        <h2 lang="en">Ghost between the Shells</h2>
+        <h2 lang="zh-CN">Ghost between the Shells</h2>
+        <p lang="en">Phones, computers, and servers join into one space, where Enco roams freely. Physical distance, of course, cannot bind a free soul.</p>
+        <p lang="zh-CN">不同的手机、电脑、服务器连成一片空间，Enco 可以在其中自由漫游。物理的距离，当然不可能约束自由的灵魂。</p>
+        <p class="note" lang="en">This part is still planned.</p>
+        <p class="note" lang="zh-CN">这部分还在计划中。</p>
+      </div>
+    </section>
+
+    <section class="chapter closing" data-scene>
+      <div class="copy">
+        <h2 lang="en">What Enco means, roughly</h2>
+        <h2 lang="zh-CN">Enco的意思，大概</h2>
+        <p lang="en">The name enco comes from echo. An agent is a little like an echo, yet not quite. Given time to grow, it will become something of its own.</p>
+        <p lang="zh-CN">enco 这个名字从 echo 而来。Agent 有点像回声，但又有所不同。成长到最后，终究也会变成不一样的样子吧。</p>
+        <pre class="start" aria-label="Build from source"><code>git clone https://github.com/Darkatse/Enco.git
+cd Enco
+cargo xtask build-factory
+cargo run -p enco -- init
+cargo run -p enco -- serve</code></pre>
+        <div class="actions">
+          <a class="button" href="https://github.com/Darkatse/Enco">GitHub</a>
+          <a class="quiet" lang="en" href="https://github.com/Darkatse/Enco#building-from-source">Full build steps</a>
+          <a class="quiet" lang="zh-CN" href="https://github.com/Darkatse/Enco/blob/main/README.zh-CN.md">完整构建步骤</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span lang="en">Enco is in early development. Apache License 2.0.</span>
+    <span lang="zh-CN">Enco 还在早期开发中。Apache License 2.0。</span>
+  </footer>
+</body>
+</html>

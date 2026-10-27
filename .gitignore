@@ -1,0 +1,11 @@
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+
+# cf builds and generated types
+.cloudflare/
+node_modules/
+.DS_Store

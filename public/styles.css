@@ -1,0 +1,301 @@
+:root {
+  color-scheme: light;
+  --paper: #f2efe9;
+  --ink: #221f1b;
+  --muted: #6d665c;
+  --rule: #d6d0c4;
+  --accent: #2f45c8;
+  --mono: "IBM Plex Mono", "SF Mono", Menlo, Consolas;
+  --cjk: "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei";
+  --gutter: max(24px, 7vw);
+  --column: 31rem;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0f1110;
+  --ink: #d8d3c4;
+  --muted: #8a8579;
+  --rule: #2c2f2d;
+  --accent: #94aaff;
+}
+
+html[lang="en"] [lang="zh-CN"],
+html[lang="zh-CN"] [lang="en"] {
+  display: none;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 15px/1.7 var(--mono), var(--cjk), monospace;
+  -webkit-font-smoothing: antialiased;
+  transition: color 0.45s ease, background-color 0.45s ease;
+}
+
+html[lang="zh-CN"] body {
+  font-size: 16px;
+  line-height: 1.9;
+  letter-spacing: 0.02em;
+}
+
+.field {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100lvh;
+  display: block;
+  pointer-events: none;
+}
+
+.no-field .field {
+  display: none;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* Header */
+
+.bar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px var(--gutter) 34px;
+  background: linear-gradient(var(--paper) 45%, transparent);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.mark {
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.switch {
+  display: flex;
+  gap: 4px;
+}
+
+.switch button {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 2px 5px;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.switch button:hover,
+.switch button[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.switch button[aria-pressed="true"] {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+}
+
+/* Chapters */
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+.chapter {
+  min-height: 140vh;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--gutter);
+}
+
+.hero {
+  min-height: 100vh;
+  align-items: flex-end;
+  padding-bottom: 15vh;
+}
+
+.copy {
+  min-width: 0;
+  max-width: var(--column);
+}
+
+/* The name is drawn by the art; the heading stays for screen readers and search. */
+h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+h2 {
+  margin: 0 0 24px;
+  font-size: clamp(25px, 2.5vw, 34px);
+  font-weight: 400;
+  line-height: 1.28;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+html[lang="zh-CN"] h2 {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+p {
+  margin: 0 0 1em;
+  text-wrap: pretty;
+}
+
+.lead {
+  font-size: 17px;
+}
+
+html[lang="zh-CN"] .lead {
+  font-size: 18px;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+  margin-top: 40px;
+}
+
+.button {
+  padding: 11px 18px;
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.button:hover {
+  opacity: 0.86;
+}
+
+.quiet {
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.quiet:hover {
+  text-decoration-color: currentColor;
+}
+
+.start {
+  margin: 36px 0 0;
+  padding: 2px 0 2px 18px;
+  border-left: 1px solid var(--rule);
+  overflow-x: auto;
+  color: var(--muted);
+  font: 13px/1.8 var(--mono), monospace;
+  letter-spacing: 0;
+}
+
+.foot {
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--gutter) 40px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Phones, and tablets held upright (NARROW in main.js): the art sits above, the copy below. */
+
+@media (max-width: 760px), (max-aspect-ratio: 4/5) {
+  .bar {
+    padding: 16px 20px;
+  }
+
+  .controls {
+    gap: 8px;
+  }
+
+  .switch button {
+    padding: 2px 3px;
+  }
+
+  /* The hero already links to GitHub; the bar keeps only the settings. */
+  .controls > .quiet {
+    display: none;
+  }
+
+  .chapter {
+    min-height: 120svh;
+    align-items: flex-end;
+    padding: 0 20px 8svh;
+  }
+
+  .copy {
+    padding-top: 56px;
+    background: linear-gradient(to bottom, transparent, var(--paper) 56px);
+  }
+
+  .hero {
+    min-height: 100svh;
+    padding-bottom: 8svh;
+  }
+
+  .foot {
+    padding: 0 20px 32px;
+  }
+
+  /* The longest command fits a phone's width without scrolling. */
+  .start {
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .switch button,
+  .button,
+  .quiet {
+    transition: none;
+  }
+}
