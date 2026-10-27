@@ -6,6 +6,20 @@
   <title>Enco: a local personal assistant</title>
   <meta name="description" content="A local personal assistant. Light, free, self-building. Always on.">
   <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="canonical" href="https://enco.sh/">
+  <!-- Link previews read these, not the script below. The image is drawn by tools/card.html. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Enco">
+  <meta property="og:url" content="https://enco.sh/">
+  <meta property="og:title" content="Enco: a local personal assistant">
+  <meta property="og:description" content="A local personal assistant. Light, free, self-building. Always on.">
+  <meta property="og:image" content="https://enco.sh/card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The word enco, condensed out of falling characters.">
+  <meta name="twitter:card" content="summary_large_image">
   <script>
     (() => {
       const root = document.documentElement;
@@ -49,6 +63,11 @@
         <h1>Enco</h1>
         <p class="lead" lang="en">A local personal assistant. Light, free, self-building. Always on.</p>
         <p class="lead" lang="zh-CN">本地运行的私人助理。轻盈，自由，自我构建。永远在线。</p>
+        <div class="start">
+          <p><code>curl -fsSL https://install.enco.sh | sh</code><button type="button" data-copy aria-live="polite"><span class="ready"><span lang="en">copy</span><span lang="zh-CN">复制</span></span><span class="done"><span lang="en">copied</span><span lang="zh-CN">已复制</span></span></button></p>
+          <p lang="en"># macOS and Linux. <a class="quiet" href="https://github.com/Darkatse/Enco#installation-and-development">Docker or build from source</a></p>
+          <p lang="zh-CN"># macOS 与 Linux。<a class="quiet" href="https://github.com/Darkatse/Enco/blob/main/README.zh-CN.md#安装与开发">Docker，或从源码构建</a></p>
+        </div>
         <div class="actions">
           <a class="button" href="https://github.com/Darkatse/Enco">GitHub</a>
           <a class="quiet" lang="en" href="https://github.com/Darkatse/Enco#readme">README</a>
@@ -110,15 +129,15 @@
         <h2 lang="zh-CN">Enco的意思，大概</h2>
         <p lang="en">The name enco comes from echo. An agent is a little like an echo, yet not quite. Given time to grow, it will become something of its own.</p>
         <p lang="zh-CN">enco 这个名字从 echo 而来。Agent 有点像回声，但又有所不同。成长到最后，终究也会变成不一样的样子吧。</p>
-        <pre class="start" aria-label="Build from source"><code>git clone https://github.com/Darkatse/Enco.git
-cd Enco
-cargo xtask build-factory
-cargo run -p enco -- init
-cargo run -p enco -- serve</code></pre>
+        <div class="start">
+          <p><code>curl -fsSL https://install.enco.sh | sh</code><button type="button" data-copy aria-live="polite"><span class="ready"><span lang="en">copy</span><span lang="zh-CN">复制</span></span><span class="done"><span lang="en">copied</span><span lang="zh-CN">已复制</span></span></button></p>
+          <p><code>enco init</code><span lang="en"># edit ~/.enco/config.toml</span><span lang="zh-CN"># 编辑 ~/.enco/config.toml</span></p>
+          <p><code>enco serve</code></p>
+        </div>
         <div class="actions">
           <a class="button" href="https://github.com/Darkatse/Enco">GitHub</a>
-          <a class="quiet" lang="en" href="https://github.com/Darkatse/Enco#building-from-source">Full build steps</a>
-          <a class="quiet" lang="zh-CN" href="https://github.com/Darkatse/Enco/blob/main/README.zh-CN.md">完整构建步骤</a>
+          <a class="quiet" lang="en" href="https://github.com/Darkatse/Enco#installation-and-development">Docker or build from source</a>
+          <a class="quiet" lang="zh-CN" href="https://github.com/Darkatse/Enco/blob/main/README.zh-CN.md#安装与开发">Docker，或从源码构建</a>
         </div>
       </div>
     </section>

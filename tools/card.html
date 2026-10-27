@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>enco-site card</title>
+<!-- Development aid: draws the link preview image, public/card.png: the opening's still with the
+     name centred, offered as a PNG. Parameters: theme (light or dark), width and height in image
+     pixels, rows of glyphs, and time in seconds. The defaults make the published card; at 28 s the
+     name is drawn in the density ramp, its heaviest style, which still reads when a chat shrinks
+     the card to a few hundred pixels. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=block">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; }
+  canvas { display: block; }
+  a { position: fixed; right: 16px; bottom: 16px; font: 13px monospace; }
+</style>
+<canvas></canvas>
+<a download="card.png">Save card.png</a>
+<script type="module">
+import { Field } from '../src/field.js';
+import { textTexture } from '../src/text.js';
+
+const params = new URLSearchParams(location.search);
+const theme = params.get('theme') || 'dark';
+const width = Number(params.get('width') || 1200);
+const height = Number(params.get('height') || 630);
+const rows = Number(params.get('rows') || 45);
+const time = Number(params.get('time') || 28);
+const family = '"IBM Plex Mono", monospace';
+
+document.documentElement.dataset.theme = theme;
+const style = getComputedStyle(document.documentElement);
+const color = (name) => {
+  const hex = style.getPropertyValue(name).trim().replace('#', '');
+  return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+};
+await Promise.all(['400', '500'].map((weight) => document.fonts.load(`${weight} 20px "IBM Plex Mono"`)));
+
+// Sizes are in image pixels; the field works in CSS pixels times the device pixel ratio.
+const canvas = document.querySelector('canvas');
+const dpr = Math.min(devicePixelRatio || 1, 2);
+canvas.style.width = `${width / dpr}px`;
+canvas.style.height = `${height / dpr}px`;
+const field = Field.create(canvas, textTexture());
+const cell = height / rows / dpr;
+const view = [width / dpr, height / dpr];
+field.resize({ width: cell * 0.54, height: cell, font: cell * 0.88 }, family,
+  { lines: ['enco'], x: view[0] / 2, y: view[1] * 0.5, width: view[0] * 0.8, step: 0 });
+
+const frame = {
+  chapters: { from: 0, to: 1, mix: 0 },
+  cells: { uTime: time, uBorn: time, uPocket: [0, 0, 0, 0] },
+  present: { uPaper: color('--paper'), uInk: color('--ink'), uAccent: color('--accent') },
+};
+while (!field.render(frame)) await new Promise((resolve) => setTimeout(resolve, 10));
+// The drawing buffer is only readable in the task that drew it.
+field.render(frame);
+window.card = canvas.toDataURL('image/png');
+document.querySelector('a').href = window.card;
+document.title = 'ready';
+</script>

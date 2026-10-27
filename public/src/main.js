@@ -14,11 +14,9 @@ const ROWS = 88; // about this many rows of glyphs on any screen
 // The shortest time between frames, in ms: the usual one, and the one where WebGL runs on the CPU
 // and shares its cores with everything else. `Pace` lengthens it on a device that cannot keep up.
 const INTERVAL = { usual: 1000 / 60, software: 1000 / 24 };
+// The title and description in English are the HTML's own, which search engines and link previews
+// read; other languages replace them here.
 const META = {
-  en: {
-    title: 'Enco: a personal assistant that runs locally',
-    description: 'A personal assistant that runs locally. Lightweight, free, and able to build itself. Always on.',
-  },
   'zh-CN': {
     title: 'Enco：本地运行的私人助理',
     description: '本地运行的私人助理。轻盈，自由，自我构建。永远在线。',
@@ -38,6 +36,8 @@ if (field) animate(field);
 else root.classList.add('no-field');
 
 function controls() {
+  const description = document.querySelector('meta[name="description"]');
+  const english = { title: document.title, description: description.content };
   const store = (key, value) => {
     try {
       localStorage.setItem(key, value);
@@ -50,11 +50,13 @@ function controls() {
     for (const button of document.querySelectorAll('[data-theme-choice]')) {
       button.setAttribute('aria-pressed', String(button.dataset.themeChoice === root.dataset.theme));
     }
-    const meta = META[root.lang] ?? META.en;
+    const meta = META[root.lang] ?? english;
     document.title = meta.title;
-    document.querySelector('meta[name="description"]').content = meta.description;
+    description.content = meta.description;
   };
   document.addEventListener('click', (event) => {
+    const copy = event.target.closest('[data-copy]');
+    if (copy) copyCommand(copy);
     const lang = event.target.closest('[data-lang]');
     if (lang) {
       root.lang = lang.dataset.lang;
@@ -79,6 +81,18 @@ function controls() {
     }
   });
   sync();
+}
+
+// Copies the command on the button's line. Where the page may not write to the clipboard, the
+// command is selected instead, for the reader to copy.
+function copyCommand(button) {
+  const command = button.parentElement.querySelector('code');
+  const select = () => getSelection().selectAllChildren(command);
+  if (!navigator.clipboard) return select();
+  navigator.clipboard.writeText(command.textContent).then(() => {
+    button.classList.add('copied');
+    setTimeout(() => button.classList.remove('copied'), 1600);
+  }, select);
 }
 
 // The glyph cell for this viewport, in CSS px.

@@ -50,3 +50,9 @@ const { still, ascii } = await import('/tools/inspect.js');
 await still({ position: 2, time: 8 }); // section index (2.5 is mid-transition), seconds
 ascii();                               // the same still as plain text
 ```
+
+## Link previews and icons
+
+Discord, Telegram, X and other apps that preview links read the Open Graph tags in `public/index.html`, never the script, so the English title and description there are the ones they show. The image is `public/card.png`, the opening's name in the dark theme. `tools/card.html` draws it with the page's own renderer: open it, save the PNG over `public/card.png`, and redeploy whenever the opening or the dark palette changes. Apps cache previews for a while; Telegram's @WebpageBot refreshes one on request.
+
+The tab icon, `public/favicon.ico`, and the home-screen icon, `public/apple-touch-icon.png`, come from `tools/icons.html` the same way: the tab icon sets the lowercase `e` of `enco` on the dark paper with two concentric echo arcs in the accent colour, while the home-screen icon condenses a lowercase `e` out of the opening's falling ASCII rain with the page's own renderer.
